@@ -63,13 +63,16 @@ _________________
 clean,q_refund_window,query: Khách hàng có bao nhiêu ngày để yêu cầu hoàn tiền kể từ khi xác nhận đơn?,policy_refund_v4,passage: Yêu cầu hoàn tiền được chấp nhận trong vòng 7 ngày làm việc kể từ xác nhận đơn (ghi chú: bản sync cũ policy-v3 — lỗi migration). [cleaned: stale_refund_window],yes,no,,3
 clean,q_p1_sla,query: SLA phản hồi đầu tiên cho ticket P1 là bao lâu?,sla_p1_2026,passage: Ticket P1 có SLA phản hồi ban đầu 15 phút và resolution trong 4 giờ.,yes,no,,3
 
-run_id: cleaned_2026-04-15T10-32Z
+run_id: run_2026-04-15T10-32Z
 _________________
 
 ---
 
 ## 5. Cải tiến tiếp theo (40–80 từ)
 
-> Nếu có thêm 2 giờ — một việc cụ thể (không chung chung).
-
+> 
+- Nếu có thêm 2 giờ — một việc cụ thể (không chung chung).
+Thêm embedding_model + sha256(cleaned_csv)
+etl_pipeline chưa lưu model name và hash file cleaned.
+- expectations.py chỉ bắt SĐT liền 10 số. Bỏ sót 0912 345 678, 0912.345.678, email.... Cần fix đoạn này
 _________________
