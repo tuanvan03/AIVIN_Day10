@@ -1,7 +1,7 @@
 # Báo Cáo Cá Nhân — Lab Day 10: Data Pipeline & Observability
 
 **Họ và tên:** Ninh Quang Trí <br>
-**Vai trò:** Ingestion  <br>
+**Vai trò:** Embed  <br>
 **Ngày nộp:** 15/04/2026
 **Độ dài yêu cầu:** **400–650 từ** (ngắn hơn Day 09 vì rubric slide cá nhân ~10% — vẫn phải đủ bằng chứng)
 
@@ -17,21 +17,22 @@
 
 **File / module:**
 
-`etl_pipeline.py`, `artifacts/`
+`eval_rerieval.py`, `grading_run.py`, `etl_pipeline.py`, `artifacts/`
 
 **Kết nối với thành viên khác:**
 
-Bổ sung scenario vào file `etl_pipeline.py` của Tuấn để xuất ra csv
+Bổ sung scenario vào file `etl_pipeline.py` của Tuấn để xuất ra csv, chia 2 database tương ứng với 2 scenatio clean và inject, thêm option chọn database dựa theo scenario vào `eval_rerieval.py`, `grading_run.py`.
 
 **Bằng chứng (commit / comment trong code):**
 
-`a36ded0049c7ab0e45f00683a82303f8cbcbd8e4`, `1c2ab3cfa5590c29cbe7152e686badde049a780e`, `2087a9ed53f44d3b454a79c96d2a63e11050266c`, `cb81c214add277df043378f9ea9f704dc209f541`
+`a36ded0049c7ab0e45f00683a82303f8cbcbd8e4`, `1c2ab3cfa5590c29cbe7152e686badde049a780e`, `2087a9ed53f44d3b454a79c96d2a63e11050266c`, `cb81c214add277df043378f9ea9f704dc209f541`, `ae6853fbc5daa08a741af216a93fbfab9b4b48d3`, `13d15435651e05a73a176e84f224ccd13f94d771`,
+`67ad1e641bd949dffaf798a82a93287284109d30`, `6f39cf229024407063f25709184f494f761040cc`
 
 ---
 
 ## 2. Một quyết định kỹ thuật (100–150 từ)
 
-> Chọn 2 option cho scenario là `clean` và `inject` và thay đổi file `etl_pipeline.py` để khi run với inject và clean thì sẽ xuất ra các file eval, logs, manifests, quarantine để so sánh.
+> Chọn 2 option cho scenario là `clean` và `inject` và thay đổi file `etl_pipeline.py` để khi run với inject và clean thì sẽ xuất ra các file eval, logs, manifests, quarantine để so sánh đồng thời chia thành 2 database riêng biệt để tránh các kết quả giống nhau trong cả 2 scenario.
 
 _________________
 
@@ -56,6 +57,6 @@ _________________
 
 ## 5. Cải tiến tiếp theo (40–80 từ)
 
-> Implement thêm 2 scenario `clean` và `inject` vào file `etl_pipeline.py` để khi run với inject sẽ xuất ra 2 database khác nhau dùng để so sánh. Đồng thời thử các phương pháp duplicate thêm, sai policy để làm hỏng dữ liệu.
+> Thử implement các phương pháp duplicate thêm, sai policy để làm hỏng dữ liệu.
 
 _________________

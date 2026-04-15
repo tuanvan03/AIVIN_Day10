@@ -6,6 +6,5 @@ __pycache__/
 .DS_Store
 chroma_db/
 .pytest_cache/
-*.log
 chroma_db_clean/
 chroma_db_inject/
