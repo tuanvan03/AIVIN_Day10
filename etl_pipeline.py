@@ -106,7 +106,7 @@ def cmd_run(args: argparse.Namespace) -> int:
     latest_exported = ""
     if cleaned:
         latest_exported = max((r.get("exported_at") or "" for r in cleaned), default="")
-
+    base_db_path = os.environ.get("CHROMA_DB_PATH", str(ROOT / "chroma_db"))
     manifest = {
         "run_id": run_id,
         "scenario": scenario,
