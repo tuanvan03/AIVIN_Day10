@@ -1,7 +1,7 @@
 # Báo Cáo Cá Nhân — Lab Day 10: Data Pipeline & Observability
 
 **Họ và tên:** Đoàn Văn Tuấn  
-**Vai trò:** Ingestion / Cleaning / Embed / Validation  
+**Vai trò:** Cleaning / Embed 
 **Ngày nộp:** 15/04/2026  
 **Độ dài yêu cầu:** **400–650 từ** (ngắn hơn Day 09 vì rubric slide cá nhân ~10% — vẫn phải đủ bằng chứng)
 
@@ -46,7 +46,7 @@ Thêm nữa, trong `etl_pipeline.py`, tôi đã áp dụng cách lưu trữ dữ
 
 **Triệu chứng:** Pipeline đôi lúc bị văng và RAG trả đáp án có số điện thoại cá nhân trái phép hoặc chính sách phản hồi SLA 12h (thực tế 2026 năm nay quy định đã giảm xuống nhỏ hơn 12 giờ cho P1).
 **Phát hiện:** Khi chạy `expectations.py` tôi thấy expectation `no_pii_phone_numbers` và `sla_no_stale_12_hours` fail với log: `[FAILED] no_pii_phone_numbers (severity: halt) -> violations=4` từ bộ kiểm tra test cases của sprint 2. Pipeline bị báo lỗi `PIPELINE_HALT`. 
-**Khắc phục:** Tôi đã quay trở lại file `cleaning_rules.py` bổ sung logic loại bỏ (`quarantine`) toàn bộ chunk có khớp regex `r"\b0[1-9]\d{8}\b"` và tiến hành sửa lại văn bản SLA P1 chứa `12 hours` (hoặc loại hẳn đoạn đó để bot dựa vào văn bản đúng). Kết quả: khi chạy `python etl_pipeline.py run`, các bản ghi bị lệch chuẩn được push thẳng vào file `artifacts/quarantine/`, và tiến trình lưu embed db diễn ra an thành công `embed_upsert count=23`.
+**Khắc phục:** Tôi đã quay trở lại file `cleaning_rules.py` bổ sung logic loại bỏ (`quarantine`) toàn bộ chunk có khớp regex `r"\b0[1-9]\d{8}\b"` và tiến hành sửa lại văn bản SLA P1 chứa `12 hours` (hoặc loại hẳn đoạn đó để bot dựa vào văn bản đúng). Kết quả: khi chạy `python etl_pipeline.py run`, các bản ghi bị lệch chuẩn được push thẳng vào file `artifacts/quarantine/`, và tiến trình lưu embed db diễn ra an thành công `embed_upsert count=6`.
 
 ---
 
@@ -55,14 +55,14 @@ Thêm nữa, trong `etl_pipeline.py`, tôi đã áp dụng cách lưu trữ dữ
 > Dán ngắn 2 dòng từ `before_after_eval.csv` hoặc tương đương; ghi rõ `run_id`.
 
 Sau khi triển khai luật, lượng dữ liệu bẩn được ngăn chặn:
-**Run ID:** `2026-04-15T08-56Z` (và file manifest `manifest_2026-04-15T08-56Z.json`)
+**Run ID:** `2026-04-15T10-32Z` (và file manifest `manifest_2026-04-15T10-32Z.json`)
 **Logs Pipeline thể hiện lượng Cleaned vs Quarantine:**
 ```
 scenario=clean
-raw_records=30
-cleaned_records=23
-quarantine_records=7
-expectation[min_one_row] OK (halt) :: cleaned_rows=23
+raw_records=10
+cleaned_records=6
+quarantine_records=4
+expectation[min_one_row] OK (halt) :: cleaned_rows=6
 expectation[no_pii_phone_numbers] OK (halt) :: violations=0
 expectation[sla_no_stale_12_hours] OK (halt) :: violations=0
 PIPELINE_OK
