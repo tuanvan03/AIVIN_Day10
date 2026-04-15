@@ -1,7 +1,7 @@
 # Báo Cáo Cá Nhân — Lab Day 10: Data Pipeline & Observability
 
 **Họ và tên:** Ninh Quang Trí <br>
-**Vai trò:** Ingestion  <br>
+**Vai trò:** Embed  <br>
 **Ngày nộp:** 15/04/2026
 **Độ dài yêu cầu:** **400–650 từ** (ngắn hơn Day 09 vì rubric slide cá nhân ~10% — vẫn phải đủ bằng chứng)
 
