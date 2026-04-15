@@ -35,6 +35,7 @@ def main() -> int:
         help="CSV kết quả",
     )
     parser.add_argument("--top-k", type=int, default=3)
+    parser.add_argument("--scenario", default="standard", help="Tên kịch bản chạy (clean/inject)")
     args = parser.parse_args()
 
     try:
@@ -66,6 +67,7 @@ def main() -> int:
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     fieldnames = [
+        "scenario",
         "question_id",
         "question",
         "top1_doc_id",
@@ -97,6 +99,7 @@ def main() -> int:
                 top1_expected = "yes" if top_doc == want_top1 else "no"
             w.writerow(
                 {
+                    "scenario": args.scenario,
                     "question_id": q.get("id", ""),
                     "question": text,
                     "top1_doc_id": top_doc,
