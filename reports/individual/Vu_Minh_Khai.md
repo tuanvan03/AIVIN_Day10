@@ -60,7 +60,10 @@ _________________
 ## 4. Bằng chứng trước / sau (80–120 từ)
 
 > Dán ngắn 2 dòng từ `before_after_eval.csv` hoặc tương đương; ghi rõ `run_id`.
+clean,q_refund_window,query: Khách hàng có bao nhiêu ngày để yêu cầu hoàn tiền kể từ khi xác nhận đơn?,policy_refund_v4,passage: Yêu cầu hoàn tiền được chấp nhận trong vòng 7 ngày làm việc kể từ xác nhận đơn (ghi chú: bản sync cũ policy-v3 — lỗi migration). [cleaned: stale_refund_window],yes,no,,3
+clean,q_p1_sla,query: SLA phản hồi đầu tiên cho ticket P1 là bao lâu?,sla_p1_2026,passage: Ticket P1 có SLA phản hồi ban đầu 15 phút và resolution trong 4 giờ.,yes,no,,3
 
+run_id: cleaned_2026-04-15T10-32Z
 _________________
 
 ---
