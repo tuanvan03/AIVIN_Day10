@@ -32,6 +32,7 @@ def main() -> int:
         default=str(ROOT / "artifacts" / "eval" / "grading_run.jsonl"),
     )
     p.add_argument("--top-k", type=int, default=5)
+    p.add_argument("--scenario", default="standard", help="Tên kịch bản chạy (clean/inject)")
     args = p.parse_args()
 
     try:
@@ -44,6 +45,7 @@ def main() -> int:
     qpath = Path(args.questions)
     qs = json.loads(qpath.read_text(encoding="utf-8"))
     db_path = os.environ.get("CHROMA_DB_PATH", str(ROOT / "chroma_db"))
+    db_path = f"{db_path}_{args.scenario}"
     collection_name = os.environ.get("CHROMA_COLLECTION", "day10_kb")
     model_name = os.environ.get("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
 
@@ -72,6 +74,7 @@ def main() -> int:
             if want_top1:
                 top1_ok = top_doc == want_top1
             rec = {
+                "scenario": args.scenario,
                 "id": q.get("id"),
                 "question": text,
                 "top1_doc_id": top_doc,
