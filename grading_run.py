@@ -31,6 +31,7 @@ def main() -> int:
         "--out",
         default=str(ROOT / "artifacts" / "eval" / "grading_run.jsonl"),
     )
+    p.add_argument("--scenario", default="clean", help="Tên kịch bản chạy (clean/inject)")
     p.add_argument("--top-k", type=int, default=5)
     args = p.parse_args()
 
@@ -43,7 +44,8 @@ def main() -> int:
 
     qpath = Path(args.questions)
     qs = json.loads(qpath.read_text(encoding="utf-8"))
-    db_path = os.environ.get("CHROMA_DB_PATH", str(ROOT / "chroma_db"))
+    base_db_path = os.environ.get("CHROMA_DB_PATH", str(ROOT / "chroma_db"))
+    db_path = f"{base_db_path}_{args.scenario}"
     collection_name = os.environ.get("CHROMA_COLLECTION", "day10_kb")
     model_name = os.environ.get("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
 
