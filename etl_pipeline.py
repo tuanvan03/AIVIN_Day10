@@ -97,7 +97,6 @@ def cmd_run(args: argparse.Namespace) -> int:
     embed_ok = cmd_embed_internal(
         cleaned_path,
         run_id=run_id,
-        scenario=scenario,
         log=log,
     )
     if not embed_ok:
@@ -119,7 +118,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         "no_refund_fix": bool(args.no_refund_fix),
         "skipped_validate": bool(args.skip_validate and halt),
         "cleaned_csv": str(cleaned_path.relative_to(ROOT)),
-        "chroma_path": f"{base_db_path}_{scenario}",
+        "chroma_path": os.environ.get("CHROMA_DB_PATH", "./chroma_db"),
         "chroma_collection": os.environ.get("CHROMA_COLLECTION", "day10_kb"),
     }
     man_path = MAN_DIR / f"manifest_{run_id.replace(':', '-')}.json"
@@ -133,7 +132,7 @@ def cmd_run(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_embed_internal(cleaned_csv: Path, *, run_id: str, scenario: str, log) -> bool:
+def cmd_embed_internal(cleaned_csv: Path, *, run_id: str, log) -> bool:
     try:
         import chromadb
         from chromadb.utils import embedding_functions
@@ -141,8 +140,7 @@ def cmd_embed_internal(cleaned_csv: Path, *, run_id: str, scenario: str, log) ->
         log("ERROR: chromadb chưa cài. pip install -r requirements.txt")
         return False
 
-    base_db_path = os.environ.get("CHROMA_DB_PATH", str(ROOT / "chroma_db"))
-    db_path = f"{base_db_path}_{scenario}"
+    db_path = os.environ.get("CHROMA_DB_PATH", str(ROOT / "chroma_db"))
     collection_name = os.environ.get("CHROMA_COLLECTION", "day10_kb")
     model_name = os.environ.get("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
 
