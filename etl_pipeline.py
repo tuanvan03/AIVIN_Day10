@@ -63,7 +63,10 @@ def cmd_run(args: argparse.Namespace) -> int:
 
     rows = load_raw_csv(raw_path)
     raw_count = len(rows)
+    
+    scenario = "inject" if args.no_refund_fix else "clean"
     log(f"run_id={run_id}")
+    log(f"scenario={scenario}")
     log(f"raw_records={raw_count}")
 
     cleaned, quarantine = clean_rows(
@@ -105,6 +108,7 @@ def cmd_run(args: argparse.Namespace) -> int:
 
     manifest = {
         "run_id": run_id,
+        "scenario": scenario,
         "run_timestamp": datetime.now(timezone.utc).isoformat(),
         "raw_path": str(raw_path.relative_to(ROOT)),
         "raw_records": raw_count,
