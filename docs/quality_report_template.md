@@ -1,18 +1,20 @@
 # Quality report — Lab Day 10 (nhóm)
 
-**run_id:** _______________  
-**Ngày:** _______________
+**run_id:** `2026-04-15T08-33Z`  
+**Ngày:** 2026-04-15
 
 ---
 
 ## 1. Tóm tắt số liệu
 
+**Trước** = run `inject-bad` (`--no-refund-fix --skip-validate`) · **Sau** = run `2026-04-15T08-33Z` (pipeline chuẩn).
+
 | Chỉ số | Trước | Sau | Ghi chú |
 |--------|-------|-----|---------|
-| raw_records | | | |
-| cleaned_records | | | |
-| quarantine_records | | | |
-| Expectation halt? | | | |
+| raw_records | 10 | 10 | cùng file nguồn `data/raw/policy_export_dirty.csv` |
+| cleaned_records | 6 | 6 | cờ `--no-refund-fix` chỉ đổi nội dung refund (14→7), không đổi số dòng |
+| quarantine_records | 4 | 4 | rule quarantine (HR cũ, doc_id lạ, ngày không ISO, duplicate) chạy giống nhau ở cả 2 run |
+| Expectation halt? | Không | Không | run "Trước" bị `--skip-validate` bypass nên không halt dù dữ liệu xấu; run "Sau" pass expectation thật sự |
 
 ---
 
@@ -20,29 +22,69 @@
 
 > Đính kèm hoặc dẫn link tới `artifacts/eval/before_after_eval.csv` (hoặc 2 file before/after).
 
-**Câu hỏi then chốt:** refund window (`q_refund_window`)  
-**Trước:** (copy dòng CSV hoặc paste top-k)  
-**Sau:**
+**Câu hỏi then chốt:** refund window (`q_refund_window`)
 
-**Merit (khuyến nghị):** versioning HR — `q_leave_version` (`contains_expected`, `hits_forbidden`, cột `top1_doc_expected`)
+**Trước** (`after_inject_bad.csv` — run `inject-bad` với `--no-refund-fix --skip-validate`):
+- `top1_doc_id = policy_refund_v4`, `top1_preview = "... trong vòng 7 ngày làm việc ..."`
+- `contains_expected = yes`, **`hits_forbidden = yes`**, `top1_doc_expected = (rỗng)`
+- → Top-1 trả chunk đúng (7 ngày) nhưng **top-k vẫn còn chunk stale "14 ngày"** — đúng tinh thần observability: câu trả lời nhìn đúng mà context vẫn lẫn bản cũ, LLM có thể hallucinate trộn.
 
-**Trước:**  
-**Sau:**
+**Sau** (`before_after_eval.csv` — run `standard` sau khi chạy lại pipeline chuẩn):
+- `top1_doc_id = policy_refund_v4`, `top1_preview = "... trong vòng 7 ngày làm việc ..."`
+- `contains_expected = yes`, **`hits_forbidden = no`**, `top1_doc_expected = (rỗng)`
+- → Publish boundary đã prune id cũ khỏi Chroma, top-k sạch hoàn toàn.
+
+**Kết luận:** fix chính ở cột `hits_forbidden` (**yes → no**), chứng minh pipeline chuẩn đã loại bỏ vector stale khỏi index.
+
+---
+
+**Merit (khuyến nghị):** versioning HR — `q_leave_version` (`contains_expected`, `hits_forbidden`, `top1_doc_expected`)
+
+**Trước** (`after_inject_bad.csv`):
+- `top1_doc_id = hr_leave_policy`, `top1_preview = "... 12 ngày phép năm theo chính sách 2026."`
+- `contains_expected = yes`, `hits_forbidden = no`, `top1_doc_expected = yes`
+
+**Sau** (`before_after_eval.csv`):
+- `top1_doc_id = hr_leave_policy`, `top1_preview = "... 12 ngày phép năm theo chính sách 2026."`
+- `contains_expected = yes`, `hits_forbidden = no`, `top1_doc_expected = yes`
+
+**Kết luận:** câu `q_leave_version` **không thay đổi giữa 2 run** vì cờ `--no-refund-fix` chỉ ảnh hưởng refund window, không chạm vào HR policy — baseline đã quarantine đúng bản HR cũ ngay từ cleaning. Để có merit rõ rệt cho dòng này, cần inject thêm kịch bản tác động vào HR (vd: tạm tắt rule quarantine HR, hoặc inject thêm row HR cũ vào raw).
 
 ---
 
 ## 3. Freshness & monitor
 
-> Kết quả `freshness_check` (PASS/WARN/FAIL) và giải thích SLA bạn chọn.
+**Kết quả:** `FAIL`
+
+```json
+{
+  "latest_exported_at": "2026-04-10T08:00:00",
+  "age_hours": 121.802,
+  "sla_hours": 24.0,
+  "reason": "freshness_sla_exceeded"
+}
+```
+
+**SLA đã chọn:** `sla_hours = 24h` — dữ liệu policy phải được export lại trong vòng 24 giờ gần nhất để agent luôn đọc bản mới. Ngưỡng 24h phù hợp với tần suất cập nhật HR / CS policy (thường không đổi trong ngày, nhưng cần refresh hằng ngày để bắt kịp bản sửa đổi).
+
+**Diễn giải:**
+- `latest_exported_at = 2026-04-10T08:00:00` — thời điểm export cuối cùng của nguồn raw.
+- `age_hours = 121.8h` (~5 ngày) — dữ liệu đã quá hạn SLA gấp **~5 lần** (121.8 / 24).
+- `reason = freshness_sla_exceeded` → monitor trả `FAIL`, pipeline cần **chặn publish** (hoặc gắn banner "data stale") cho đến khi có export mới.
+
+**Quy ước 3 mức:**
+- **PASS** — `age_hours ≤ sla_hours` → publish bình thường.
+- **WARN** — `sla_hours < age_hours ≤ 2 × sla_hours` → ping owner feed, chưa chặn.
+- **FAIL** — `age_hours > 2 × sla_hours` (hoặc theo reason khác) → chặn publish / rollback về manifest gần nhất còn PASS.
 
 ---
 
 ## 4. Corruption inject (Sprint 3)
 
 > Mô tả cố ý làm hỏng dữ liệu kiểu gì (duplicate / stale / sai format) và cách phát hiện.
-
+- Sử dụng argument `--no-refund-fix` và `--skip-validate` được implement sẵn, được phát hiện nhờ các file log csv và json trong `artifacts\` có đề mục `scenario` để ghi lại xem có sử dụng inject hay không.
 ---
 
 ## 5. Hạn chế & việc chưa làm
 
-- …
+- Freshness FAIL do raw cũ, không do pipeline: age_hours=121.8h là vì file raw policy_export_dirty.csv export từ 2026-04-10, không phải do pipeline lỗi. Trong môi trường thật, cần process upstream refresh raw hằng ngày — hiện lab chưa mô phỏng bước này.
