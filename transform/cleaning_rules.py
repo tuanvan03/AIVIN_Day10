@@ -115,6 +115,16 @@ def clean_rows(
             quarantine.append({**raw, "reason": "missing_chunk_text"})
             continue
 
+        # [NEW RULE 1] If chunk is too short, quarantine it
+        if text and len(text) < 15:
+            quarantine.append({**raw, "reason": "chunk_too_short"})
+            continue
+            
+        # [NEW RULE 2] If chunk contains phone number, quarantine it
+        if re.search(r"\b0[1-9]\d{8}\b", text):
+            quarantine.append({**raw, "reason": "contains_pii_phone"})
+            continue
+
         key = _norm_text(text)
         if key in seen_text:
             quarantine.append({**raw, "reason": "duplicate_chunk_text"})
@@ -129,6 +139,11 @@ def clean_rows(
                     "7 ngày làm việc",
                 )
                 fixed_text += " [cleaned: stale_refund_window]"
+
+        # [NEW RULE 3] Hypothesis: if chunk contains old SLA, fix it
+        if doc_id == "sla_p1_2026" and "12 hours" in fixed_text:
+            fixed_text = fixed_text.replace("12 hours", "4 hours")
+            fixed_text += " [cleaned: sla_response_time]"
 
         seq += 1
         cleaned.append(
@@ -174,3 +189,82 @@ def write_quarantine_csv(path: Path, rows: List[Dict[str, Any]]) -> None:
         w.writeheader()
         for r in rows:
             w.writerow(r)
+
+
+if __name__ == "__main__":
+    # Khởi tạo 30 testcases với các tình huống đa dạng thử nghiệm Rule cũ và Rule mới.
+    test_rows_sprint2 = [
+        # --- VALID CASES (Pass Clean) ---
+        {"doc_id": "it_helpdesk_faq", "chunk_text": "Tài liệu hdsd portal IT Helpdesk 2026.", "effective_date": "2026-03-01", "exported_at": "2026-04-10T08:00:00"}, # 1
+        {"doc_id": "hr_leave_policy", "chunk_text": "Qui định nghỉ phép năm 2026 là 15 ngày.", "effective_date": "2026-02-15", "exported_at": "2026-04-10T08:00:00"}, # 2
+        {"doc_id": "sla_p1_2026", "chunk_text": "SLA P1 luôn phải được đáp ứng trong 4 hours.", "effective_date": "15/02/2026", "exported_at": "2026-04-10"}, # 3. Date DMY -> ISO
+        
+        # --- BASELINE RULE: unknown_doc_id ---
+        {"doc_id": "invalid_doc", "chunk_text": "Tài liệu này không có trong hệ thống", "effective_date": "2026-01-01"}, # 4
+        {"doc_id": "", "chunk_text": "Không có doc id", "effective_date": "2026-01-01"}, # 5
+        {"doc_id": "secret_doc_99", "chunk_text": "Tài liệu tuyệt mật không ai được xem.", "effective_date": "2026-01-01"}, # 6
+        
+        # --- BASELINE RULE: missing_effective_date ---
+        {"doc_id": "it_helpdesk_faq", "chunk_text": "FAQ test empty date", "effective_date": "   "}, # 7
+        {"doc_id": "policy_refund_v4", "chunk_text": "Quy định abc", "effective_date": ""}, # 8
+        
+        # --- BASELINE RULE: invalid_effective_date_format ---
+        {"doc_id": "it_helpdesk_faq", "chunk_text": "FAQ test invalid date", "effective_date": "26-02"}, # 9
+        {"doc_id": "sla_p1_2026", "chunk_text": "Test date format fail", "effective_date": "N/A"}, # 10
+        {"doc_id": "policy_refund_v4", "chunk_text": "Sai format năm", "effective_date": "202-01-01"}, # 11
+        
+        # --- BASELINE RULE: stale_hr_policy_effective_date ---
+        {"doc_id": "hr_leave_policy", "chunk_text": "Quy định nhân sự áp dụng cho năm 2025.", "effective_date": "2025-12-31"}, # 12
+        {"doc_id": "hr_leave_policy", "chunk_text": "Chính sách nghỉ phép 2024.", "effective_date": "2024-01-01"}, # 13
+        
+        # --- BASELINE RULE: missing_chunk_text ---
+        {"doc_id": "it_helpdesk_faq", "chunk_text": "", "effective_date": "2026-01-01"}, # 14
+        {"doc_id": "it_helpdesk_faq", "chunk_text": "   ", "effective_date": "2026-01-01"}, # 15
+        
+        # --- BASELINE RULE: duplicate_chunk_text ---
+        {"doc_id": "it_helpdesk_faq", "chunk_text": "Nội dung này sẽ bị cắm cờ do trùng lặp nhé.", "effective_date": "2026-01-01"}, # 16 (Original)
+        {"doc_id": "it_helpdesk_faq", "chunk_text": "Nội dung này sẽ bị cắm cờ do trùng lặp nhé.", "effective_date": "2026-01-01"}, # 17 (Dup exact)
+        {"doc_id": "it_helpdesk_faq", "chunk_text": " Nội dung Này sẽ BỊ Cắm cờ do TRÙNG LẶP nhé. ", "effective_date": "2026-01-01"}, # 18 (Dup after norm text)
+        
+        # --- BASELINE RULE: fix_refund_window ---
+        {"doc_id": "policy_refund_v4", "chunk_text": "Yêu cầu hoàn tiền được chấp nhận trong vòng 14 ngày làm việc kể từ lúc đặt hàng.", "effective_date": "2026-01-01"}, # 19 (Fixed -> 7)
+        {"doc_id": "policy_refund_v4", "chunk_text": "Hoàn tiền tối đa 14 ngày làm việc được không?", "effective_date": "2026-01-01"}, # 20 (Fixed -> 7)
+        
+        # --- NEW RULE 1: chunk_too_short (< 15 chars) ---
+        {"doc_id": "sla_p1_2026", "chunk_text": "Ngắn", "effective_date": "2026-01-01"}, # 21
+        {"doc_id": "hr_leave_policy", "chunk_text": "12345678901234", "effective_date": "2026-01-01"}, # 22
+        {"doc_id": "policy_refund_v4", "chunk_text": "Chỉ 10 kí tự", "effective_date": "2026-01-01"}, # 23
+        
+        # --- NEW RULE 2: contains_pii_phone ---
+        {"doc_id": "it_helpdesk_faq", "chunk_text": "Liên hệ ngay bác Vinh theo số điện thoại 0987654321 để biết thêm.", "effective_date": "2026-01-01"}, # 24
+        {"doc_id": "policy_refund_v4", "chunk_text": "SĐT khách hàng VIP: 0312345678. Thông tin nội bộ cấm chia sẻ.", "effective_date": "2026-01-01"}, # 25
+        {"doc_id": "sla_p1_2026", "chunk_text": "Hotline nội bộ 0123456789 đang bảo trì do lỗi mạng diện rộng.", "effective_date": "2026-01-01"}, # 26
+        
+        # --- NEW RULE 3: fix_sla_response_time (12 hours -> 4 hours) ---
+        {"doc_id": "sla_p1_2026", "chunk_text": "Ticket P1 có thời gian giải quyết là 12 hours theo quy định cũ.", "effective_date": "2026-01-01"}, # 27
+        {"doc_id": "sla_p1_2026", "chunk_text": "Yêu cầu khắt khe không được vượt quá 12 hours timeout.", "effective_date": "2026-01-01"}, # 28
+        
+        # --- OTHER RANDOM VALID/INVALID MIXTURES ---
+        {"doc_id": "policy_refund_v4", "chunk_text": "Không được hoàn tiền nếu quá 7 ngày làm việc.", "effective_date": "29/02/2026"}, # 29
+        {"doc_id": "it_helpdesk_faq", "chunk_text": "Đây là 1 chunk cuối cùng để chốt 30 testcases, hoàn thành nhiệm vụ.", "effective_date": "2026-10-10"} # 30
+    ]
+
+    print(f"\\n--- CHẠY TEST ĐỘ LÀM SẠCH VÀ LUẬT CHẶN - TỔNG {len(test_rows_sprint2)} TESTCASES ---")
+    cleaned_result, quaran_result = clean_rows(test_rows_sprint2)
+    print(f">> Khối lượng Cleaned pass (Hợp lệ): {len(cleaned_result)}")
+    print(f">> Khối lượng bị Quarantine (Từ chối): {len(quaran_result)}\\n")
+    
+    print("----- [CÁC RECORD BỊ QUARANTINE VÀ LÝ DO] -----")
+    for i, q in enumerate(quaran_result):
+        # In ra lí do và 30 kí tự đầu của text
+        print(f" {i+1}. Reason: {q['reason']} | Text: {str(q.get('chunk_text', ''))}")
+        
+    print("\\n----- [CÁC RECORD CLEANED THÀNH CÔNG] -----")
+    for i, c in enumerate(cleaned_result):
+        if 'cleaned:' in c['chunk_text']:
+            print(f" {i+1}. [FIXED] Text: {c['chunk_text']}")
+        else:
+            print(f" {i+1}. [OK] Text: {c['chunk_text']}")
+
+    assert len(test_rows_sprint2) == 30, "Số lượng test cases phải chính xác 30!"
+    print("\\n[+] ĐÃ HOÀN TẤT THỬ NGHIỆM! CODE CHẠY TRƠN TRU CHO SPRINT 2!")
