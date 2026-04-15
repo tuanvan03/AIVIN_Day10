@@ -1,13 +1,13 @@
 # Quality report — Lab Day 10 (nhóm)
 
-**run_id:** `2026-04-15T08-33Z`  
+**run_id:** `2026-04-15T10-32Z`  
 **Ngày:** 2026-04-15
 
 ---
 
 ## 1. Tóm tắt số liệu
 
-**Trước** = run `inject-bad` (`--no-refund-fix --skip-validate`) · **Sau** = run `2026-04-15T08-33Z` (pipeline chuẩn).
+**Trước** = run `inject-bad` (`--no-refund-fix --skip-validate`, chroma `./chroma_db_inject`) · **Sau** = run `2026-04-15T10-32Z` (pipeline chuẩn, chroma `./chroma_db_clean`).
 
 | Chỉ số | Trước | Sau | Ghi chú |
 |--------|-------|-----|---------|
@@ -22,31 +22,34 @@
 
 > Đính kèm hoặc dẫn link tới `artifacts/eval/before_after_eval.csv` (hoặc 2 file before/after).
 
+AIVIN_Day10\artifacts\cleaned\cleaned_inject-bad.csv
+AIVIN_Day10\artifacts\eval\before_after_eval.csv
+
 **Câu hỏi then chốt:** refund window (`q_refund_window`)
 
-**Trước** (`after_inject_bad.csv` — run `inject-bad` với `--no-refund-fix --skip-validate`):
-- `top1_doc_id = policy_refund_v4`, `top1_preview = "... trong vòng 7 ngày làm việc ..."`
-- `contains_expected = yes`, **`hits_forbidden = yes`**, `top1_doc_expected = (rỗng)`
-- → Top-1 trả chunk đúng (7 ngày) nhưng **top-k vẫn còn chunk stale "14 ngày"** — đúng tinh thần observability: câu trả lời nhìn đúng mà context vẫn lẫn bản cũ, LLM có thể hallucinate trộn.
+**Trước** (`after_inject_bad.csv` — eval trên chroma `./chroma_db_inject`, run `inject-bad` với `--no-refund-fix --skip-validate`):
+- `scenario = clean`, `top1_doc_id = policy_refund_v4`
+- `top1_preview = "... trong vòng 7 ngày làm việc kể từ xác nhận đơn (ghi chú: bản sync cũ policy-v3 — lỗi migration). [cleaned: stale_refund_window]"`
+- `contains_expected = yes`, `hits_forbidden = no`, `top1_doc_expected = (rỗng)`, `top_k_used = 3`
 
-**Sau** (`before_after_eval.csv` — run `standard` sau khi chạy lại pipeline chuẩn):
-- `top1_doc_id = policy_refund_v4`, `top1_preview = "... trong vòng 7 ngày làm việc ..."`
-- `contains_expected = yes`, **`hits_forbidden = no`**, `top1_doc_expected = (rỗng)`
-- → Publish boundary đã prune id cũ khỏi Chroma, top-k sạch hoàn toàn.
+**Sau** (`before_after_eval.csv` — eval trên chroma `./chroma_db_clean`, run `2026-04-15T10-32Z` pipeline chuẩn):
+- `scenario = clean`, `top1_doc_id = policy_refund_v4`
+- `top1_preview = "... trong vòng 7 ngày làm việc kể từ xác nhận đơn (ghi chú: bản sync cũ policy-v3 — lỗi migration). [cleaned: stale_refund_window]"`
+- `contains_expected = yes`, `hits_forbidden = no`, `top1_doc_expected = (rỗng)`, `top_k_used = 3`
 
-**Kết luận:** fix chính ở cột `hits_forbidden` (**yes → no**), chứng minh pipeline chuẩn đã loại bỏ vector stale khỏi index.
+**Kết luận:** với data export hiện tại, cả 2 run đều có top-1 đúng (`7 ngày`) và `hits_forbidden = no`. Nhìn `top1_preview` có marker `[cleaned: stale_refund_window]` — chứng tỏ rule cleaning đã phát hiện và gắn nhãn stale trên dòng refund, đây là bằng chứng pipeline đang làm việc. Tuy nhiên, do eval hiện tại không sinh chênh lệch số liệu giữa 2 collection, mục 5 ghi nhận gap này để bổ sung kịch bản inject mạnh hơn ở lần sau.
 
 ---
 
 **Merit (khuyến nghị):** versioning HR — `q_leave_version` (`contains_expected`, `hits_forbidden`, `top1_doc_expected`)
 
 **Trước** (`after_inject_bad.csv`):
-- `top1_doc_id = hr_leave_policy`, `top1_preview = "... 12 ngày phép năm theo chính sách 2026."`
-- `contains_expected = yes`, `hits_forbidden = no`, `top1_doc_expected = yes`
+- `top1_doc_id = hr_leave_policy`, `top1_preview = "Nhân viên dưới 3 năm kinh nghiệm được 12 ngày phép năm theo chính sách 2026."`
+- `contains_expected = yes`, `hits_forbidden = no`, `top1_doc_expected = yes`, `top_k_used = 3`
 
 **Sau** (`before_after_eval.csv`):
-- `top1_doc_id = hr_leave_policy`, `top1_preview = "... 12 ngày phép năm theo chính sách 2026."`
-- `contains_expected = yes`, `hits_forbidden = no`, `top1_doc_expected = yes`
+- `top1_doc_id = hr_leave_policy`, `top1_preview = "Nhân viên dưới 3 năm kinh nghiệm được 12 ngày phép năm theo chính sách 2026."`
+- `contains_expected = yes`, `hits_forbidden = no`, `top1_doc_expected = yes`, `top_k_used = 3`
 
 **Kết luận:** câu `q_leave_version` **không thay đổi giữa 2 run** vì cờ `--no-refund-fix` chỉ ảnh hưởng refund window, không chạm vào HR policy — baseline đã quarantine đúng bản HR cũ ngay từ cleaning. Để có merit rõ rệt cho dòng này, cần inject thêm kịch bản tác động vào HR (vd: tạm tắt rule quarantine HR, hoặc inject thêm row HR cũ vào raw).
 
