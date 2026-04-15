@@ -79,7 +79,8 @@ def main() -> int:
         w = csv.DictWriter(fcsv, fieldnames=fieldnames)
         w.writeheader()
         for q in questions:
-            text = q["question"]
+            # text = q["question"]
+            text = f'query: {q["question"]}'
             res = col.query(query_texts=[text], n_results=args.top_k)
             docs = (res.get("documents") or [[]])[0]
             metas = (res.get("metadatas") or [[]])[0]

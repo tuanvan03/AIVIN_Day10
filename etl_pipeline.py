@@ -162,7 +162,8 @@ def cmd_embed_internal(cleaned_csv: Path, *, run_id: str, log) -> bool:
             log(f"embed_prune_removed={len(drop)}")
     except Exception as e:
         log(f"WARN: embed prune skip: {e}")
-    documents = [r["chunk_text"] for r in rows]
+    # documents = [r["chunk_text"] for r in rows]
+    documents = [f"passage: {r['chunk_text']}" for r in rows]
     metadatas = [
         {
             "doc_id": r.get("doc_id", ""),

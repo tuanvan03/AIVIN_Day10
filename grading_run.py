@@ -56,7 +56,8 @@ def main() -> int:
 
     with out.open("w", encoding="utf-8") as f:
         for q in qs:
-            text = q["question"]
+            # text = q["question"]
+            text = f'query: {q["question"]}'
             res = col.query(query_texts=[text], n_results=args.top_k)
             docs = (res.get("documents") or [[]])[0]
             metas = (res.get("metadatas") or [[]])[0]
