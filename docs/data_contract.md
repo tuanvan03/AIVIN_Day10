@@ -8,7 +8,9 @@
 
 | Nguồn | Phương thức ingest | Failure mode chính | Metric / alert |
 |-------|-------------------|-------------------|----------------|
-| … | … | … | … |
+| policy_refund_v4 | Batch (CSV) | Trùng lặp nội dung `duplicate_chunk_text`, Thiếu ngày hiệu lực `missing_effective_date` | `quarantine_records` (theo từng loại lỗi) |
+| hr_leave_policy | Batch (CSV) | Chính sách cũ/hết hạn `stale_hr_policy_effective_date` - bản 2025 | `stale_version_count` > 0 |
+| legacy_catalog_xyz_zzz | Batch (CSV) | ID tài liệu không nằm trong danh mục cho phép `unknown_doc_id` | `quarantine_records` > 0 |
 
 ---
 
