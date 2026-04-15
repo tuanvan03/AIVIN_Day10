@@ -57,6 +57,6 @@ _________________
 
 ## 5. Cải tiến tiếp theo (40–80 từ)
 
-> Implement thêm 2 scenario `clean` và `inject` vào file `etl_pipeline.py` để khi run với inject sẽ xuất ra 2 database khác nhau dùng để so sánh. Đồng thời thử các phương pháp duplicate thêm, sai policy để làm hỏng dữ liệu.
+> Thử implement các phương pháp duplicate thêm, sai policy để làm hỏng dữ liệu.
 
 _________________
