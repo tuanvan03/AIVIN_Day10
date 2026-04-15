@@ -32,6 +32,7 @@ def main() -> int:
         default=str(ROOT / "artifacts" / "eval" / "grading_run.jsonl"),
     )
     p.add_argument("--top-k", type=int, default=5)
+    p.add_argument("--scenario", default="standard", help="Tên kịch bản chạy (clean/inject)")
     args = p.parse_args()
 
     try:
@@ -72,6 +73,7 @@ def main() -> int:
             if want_top1:
                 top1_ok = top_doc == want_top1
             rec = {
+                "scenario": args.scenario,
                 "id": q.get("id"),
                 "question": text,
                 "top1_doc_id": top_doc,

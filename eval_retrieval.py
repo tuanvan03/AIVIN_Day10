@@ -35,7 +35,7 @@ def main() -> int:
         help="CSV kết quả",
     )
     parser.add_argument("--top-k", type=int, default=3)
-    parser.add_argument("--scenario", default="standard", help="Tên kịch bản chạy (clean/inject)")
+    parser.add_argument("--scenario", default="clean_run", help="Tên kịch bản chạy (clean/inject)")
     args = parser.parse_args()
 
     try:
